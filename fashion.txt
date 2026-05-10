@@ -1,0 +1,216 @@
+
+
+# ============================================
+# CNN - FASHION MNIST (LOCAL CSV VERSION)
+# ============================================
+
+import os
+import warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+warnings.filterwarnings("ignore")
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from tensorflow.keras import models, layers
+
+
+# ============================================
+# LOAD DATASET (LOCAL CSV)
+# ============================================
+
+train_df = pd.read_csv("fashion-mnist_train.csv")
+test_df = pd.read_csv("fashion-mnist_test.csv")
+
+print("Train shape:", train_df.shape)
+print("Test shape:", test_df.shape)
+
+
+# In[3]:
+
+
+# ============================================
+# SPLIT FEATURES & LABELS
+# ============================================
+
+X_train = train_df.iloc[:, 1:].values
+y_train = train_df.iloc[:, 0].values
+
+X_test = test_df.iloc[:, 1:].values
+y_test = test_df.iloc[:, 0].values
+
+
+# In[4]:
+
+
+# ============================================
+# SHOW SAMPLE IMAGE
+# ============================================
+
+plt.imshow(X_train[0].reshape(28,28), cmap='gray')
+plt.title(f"Label: {y_train[0]}")
+plt.show()
+
+
+# In[5]:
+
+
+# ============================================
+# PREPROCESSING
+# ============================================
+
+# Normalize
+X_train = X_train.astype("float32") / 255
+X_test = X_test.astype("float32") / 255
+
+# Reshape for CNN
+X_train = X_train.reshape(-1, 28, 28, 1)
+X_test = X_test.reshape(-1, 28, 28, 1)
+
+
+# In[6]:
+
+
+# ============================================
+# BUILD CNN MODEL
+# ============================================
+
+model = models.Sequential()
+
+model.add(layers.Conv2D(32, (3,3), activation='relu', input_shape=(28,28,1)))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Dropout(0.25))
+
+model.add(layers.Conv2D(64, (3,3), activation='relu'))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Dropout(0.25))
+
+model.add(layers.Conv2D(128, (3,3), activation='relu'))
+
+model.add(layers.Flatten())
+model.add(layers.Dense(128, activation='relu'))
+model.add(layers.Dropout(0.25))
+
+model.add(layers.Dense(10, activation='softmax'))
+
+
+# In[7]:
+
+
+# ============================================
+# COMPILE MODEL
+# ============================================
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+
+# In[8]:
+
+
+# ============================================
+# TRAIN MODEL
+# ============================================
+
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=10,
+    validation_data=(X_test, y_test),
+    verbose=1
+)
+
+
+# In[9]:
+
+
+# ============================================
+# EVALUATE MODEL
+# ============================================
+
+test_loss, test_acc = model.evaluate(X_test, y_test)
+
+print("\n✅ FINAL RESULT")
+print("Test Accuracy:", test_acc)
+
+
+# In[10]:
+
+
+# ============================================
+# FINAL OUTPUT (PREDICTIONS)
+# ============================================
+
+class_names = ['T-shirt', 'Trouser', 'Pullover', 'Dress', 'Coat',
+               'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+predictions = model.predict(X_test)
+
+pred_labels = np.argmax(predictions, axis=1)
+
+print("\n📊 Sample Predictions:")
+for i in range(5):
+    print(f"Actual: {class_names[y_test[i]]} | Predicted: {class_names[pred_labels[i]]}")
+
+
+# In[11]:
+
+
+# ============================================
+# GRAPHS
+# ============================================
+
+plt.figure()
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.legend()
+plt.title("Accuracy Graph")
+plt.show()
+
+plt.figure()
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title("Loss Graph")
+plt.show()
+
+
+# In[13]:
+
+
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+
+cm = confusion_matrix(y_test, pred_labels)
+
+plt.figure()
+sns.heatmap(cm, annot=True, fmt='d')
+plt.title("Confusion Matrix")
+plt.show()
+
+
+# In[14]:
+
+
+plt.imshow(X_test[0].reshape(28,28), cmap='gray')
+plt.title(f"Predicted: {class_names[pred_labels[0]]}")
+plt.show()
+
+
+# In[15]:
+
+
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, pred_labels))
+
+
+# In[ ]:
+
+
+
+
